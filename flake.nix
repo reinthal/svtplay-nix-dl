@@ -14,34 +14,19 @@
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
-        pythonEnv = pkgs.python312.withPackages (ps:
-          with ps; [
-            pip
-          ]);
       in {
-        packages.default = pkgs.stdenv.mkDerivation {
-          name = "svtplay-nix-dl";
-          buildInputs = [pythonEnv pkgs.ffmpeg];
-
-          src = ./.;
-
-          installPhase = ''
-            mkdir -p $out/bin
-            pip install -r ./requirements.txt
-
-            # Make ffmpeg available
-            ln -s ${pkgs.ffmpeg}/bin/ffmpeg $out/bin/
-          '';
-        };
+        packages.default = pkgs.writeShellScriptBin "svtplay-nix-dl" ''
+          export PATH="${pkgs.svtplay-dl}/bin:${pkgs.ffmpeg}/bin:$PATH"
+          exec ${pkgs.svtplay-dl}/bin/svtplay-dl "$@"
+        '';
 
         default = pkgs.mkShell {
-          buildInputs = [pythonEnv pkgs.ffmpeg];
+          buildInputs = [pkgs.svtplay-dl pkgs.ffmpeg];
 
           shellHook = ''
-            echo "SVTPlay-dl "
-            echo "Python: $(python --version)"
+            echo "SVTPlay-dl environment ready"
             echo "FFmpeg: $(ffmpeg -version | head -n1)"
-            echo "svtplay-dl: $(svtplay-dl --version)
+            echo "svtplay-dl: $(svtplay-dl --version)"
           '';
         };
       }
